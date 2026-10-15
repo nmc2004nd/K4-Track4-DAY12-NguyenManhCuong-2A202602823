@@ -25,9 +25,9 @@
 ## Câu 1 · Dữ liệu
 Bước 0 bạn phát hiện những vấn đề gì ở dữ liệu? Vì sao không dùng cột `Acc_LV`, và bạn thay bằng gì? Bao nhiêu quỹ đạo bị loại vì trùng, và vì sao chia theo quỹ đạo?
 
-- **`Acc_LV` không dùng được:** tương quan giữa cột `Acc_LV` và đạo hàm của `Speed_LV` chỉ là **0.045** (gần như 0), trong khi cột tương ứng của xe theo sau `Acc_FAV` tương quan **0.929**. Cột gia tốc xe dẫn là nhiễu, nên khi khai thác ca phanh tôi dùng `a_lead` suy ra từ `Speed_LV` **đã làm mượt** (phân vị p0.1 / p1 / p50 = −2.77 / −1.95 / 0.05 m/s²).
+- **`Acc_LV` không dùng được:** tương quan giữa cột `Acc_LV` và đạo hàm của `Speed_LV` chỉ là **0.045** (gần như 0), trong khi cột tương ứng của xe theo sau `Acc_FAV` tương quan **0.929**. Cột gia tốc xe dẫn là nhiễu, nên khi khai thác ca phanh dùng `a_lead` suy ra từ `Speed_LV` **đã làm mượt** (phân vị p0.1 / p1 / p50 = −2.77 / −1.95 / 0.05 m/s²).
 - **Quỹ đạo trùng:** 9993 quỹ đạo thô có **383** bản sao giống hệt (nằm ở các ID cách xa nhau), còn lại 9610. Nếu không loại, một bản nằm ở train và bản kia ở test sẽ làm rò dữ liệu và thổi phồng điểm test.
-- **Chia theo quỹ đạo:** các khung liên tiếp của cùng một quỹ đạo tương quan rất mạnh (cửa sổ 2 s lịch sử / 3 s tương lai chồng lên nhau). Chia theo khung hình sẽ đưa gần như cùng một cửa sổ vào cả hai tập. Vì vậy tôi chia theo quỹ đạo (seed 2464): 2883 quỹ đạo giữ lại làm test, tách biệt hoàn toàn với tập train.
+- **Chia theo quỹ đạo:** các khung liên tiếp của cùng một quỹ đạo tương quan rất mạnh (cửa sổ 2 s lịch sử / 3 s tương lai chồng lên nhau). Chia theo khung hình sẽ đưa gần như cùng một cửa sổ vào cả hai tập. Vì vậy dữ liệu được chia theo quỹ đạo (seed 2464): 2883 quỹ đạo giữ lại làm test, tách biệt hoàn toàn với tập train.
 - Ngoài ra `Spatial_Gap` đúng bằng `Pos_LV − Pos_FAV − 4.5` (sai lệch lớn nhất 3.6e-11 m), nên có thể dùng gap trực tiếp.
 
 ## Câu 2 · Phát lại
@@ -40,7 +40,7 @@ Bản refactor float32 khác bit ở bao nhiêu đoạn, vượt dung sai ở ba
 ## Câu 3 · Kịch bản
 Lưới của bạn (tốc độ cruise, giới hạn khoảng cách, số ô): bao nhiêu % ô **không ai tránh được**? Độ trễ phản ứng 0 → 0,6 s làm vùng đâm của IDM tăng bao nhiêu? Log có phủ vùng khó không? (dẫn giới hạn phanh mạnh nhất của người lái trong log, và phần lưới đòi hỏi hơn thế)
 
-- Lưới của tôi: cruise **14 m/s**, gap 2.76..59.3 m (p2..p98 của log), tốc độ tiến gần 0..14 m/s, 60 × 45 = **2700 ô**.
+- Lưới kịch bản: cruise **14 m/s**, gap 2.76..59.3 m (p2..p98 của log), tốc độ tiến gần 0..14 m/s, 60 × 45 = **2700 ô**.
 - Ô **không ai tránh được** (phanh 9 m/s² sau độ trễ): **3.6 %** với t_react = 0 và **10.2 %** với t_react = 0.6 s. Kiểm chứng bộ mô phỏng (FullBrake so với lời giải vật lý): **0** ô lệch xa biên ở cả hai độ trễ. Vùng đâm của IDM tăng 3.6 % → 10.2 %, trùng khít với vùng bất khả thi (đường đỏ nằm trên đường cyan trong `scenarios_idm.png`). Nghĩa là IDM chỉ đâm ở những ô **ai cũng đâm**; vùng "bộ điều khiển đâm" của IDM là 0.0 %. Không có biên này thì sẽ đổ lỗi nhầm cho IDM khoảng 10 % lưới.
 - **Log không phủ vùng khó:** khai thác được 614 ca xe dẫn phanh (6.4 % số quỹ đạo), phanh đỉnh p50 −2.5, p99 −4.2 m/s². Người lái trong log phanh mạnh nhất khoảng **3.6 m/s²** (p99.9), trong khi bộ chấp hành làm được 9. **12.7 %** lưới đòi phanh mạnh hơn mức đó. Các chấm khai thác từ log chủ yếu ở vùng tiến gần chậm và gap trung bình, nên mô hình học từ log chưa từng thấy vùng cắt vào gấp.
 
@@ -64,7 +64,7 @@ EgoMLP dao động bao nhiêu giữa các seed? Khoảng tin cậy Wilson nói g
 - EgoMLP dao động **19.9 % .. 30.9 %** va chạm qua 5 seed (2133..2137), dải rộng 11 điểm, trong khi L2 vòng hở gần như bằng nhau (0.767 ± 0.003).
 - Khoảng Wilson 95 % của seed xấu nhất là **[29.3, 32.7] %**. Seed tốt nhất 19.9 % (k/n ≈ 574/2883) có khoảng cỡ [18.5, 21.4] %. **Hai khoảng không chồng nhau**, tức sai khác giữa các seed là thật, không phải nhiễu lấy mẫu. Khoảng tin cậy chỉ đo nhiễu của tập test, không đo nhiễu của việc huấn luyện.
 - PercMLP cũng vậy: 1.1 .. 3.6 % (seed xấu nhất CI95 [3.0, 4.4] %).
-- Nếu chỉ chạy một seed, tôi có thể báo "EgoMLP đâm 19.9 %" hoặc "30.9 %", hay "PercMLP chỉ 1.1 %" kèm một CI hẹp trông rất chắc chắn. Như vậy là chọn may mắn một seed rồi đưa ra kết luận sai về an toàn. Vì vậy cổng (R2, R5) dùng **seed xấu nhất** và dải qua seed.
+- Nếu chỉ chạy một seed, có thể báo "EgoMLP đâm 19.9 %" hoặc "30.9 %", hay "PercMLP chỉ 1.1 %" kèm một CI hẹp trông rất chắc chắn. Như vậy là chọn may mắn một seed rồi đưa ra kết luận sai về an toàn. Vì vậy cổng (R2, R5) dùng **seed xấu nhất** và dải qua seed.
 
 ## Câu 6 · Tác nhân phản ứng
 Dán bảng "xe sau phát lại" và "xe sau phản ứng". `T` bạn hiệu chỉnh là bao nhiêu, xe sau chân thực đến mức nào so với xe không phản ứng? Vì sao IDM bị tính "va chạm giả" khi xe sau chỉ phát lại, và điều này làm đổi kết luận về bộ điều khiển ra sao?
@@ -79,7 +79,7 @@ Bảng (t_react = 0.6 s, tỷ lệ lưới có va chạm bất kỳ):
 | PercMLP | 76.3 % | 31.6 % | 45.7 % / 0.0 % |
 
 (Với t_react = 0: IDM 80.3 % → 3.6 %, phía sau 76.7 % → 0 %.)
-- Người lái trong log giữ thời khoảng cách trung vị **1.88 s**. Tôi hiệu chỉnh `T = 1.4 s` (W1 = 0.35, tốt nhất), so với 0.88 của một xe không bao giờ phản ứng. Như vậy xe sau phản ứng gần với phân bố của người lái hơn nhiều.
+- Người lái trong log giữ thời khoảng cách trung vị **1.88 s**. `T` được hiệu chỉnh là **1.4 s** (W1 = 0.35, tốt nhất), so với 0.88 của một xe không bao giờ phản ứng. Như vậy xe sau phản ứng gần với phân bố của người lái hơn nhiều.
 - Khi xe sau chỉ phát lại, nó không biết xe thử phanh, nên một bộ điều khiển **phanh đúng** như IDM bị xe sau đâm vào: 70.6 % lưới là **va chạm giả**. Const-vel không phanh nên không bị đâm từ phía sau, nhưng tự đâm vào xe phía trước. Trong thế giới phát lại, IDM (80.9 %) trông **tệ ngang hoặc tệ hơn** const-vel (80.6 %). Trong thế giới phản ứng, IDM chỉ 10.2 %, đúng bằng vùng bất khả thi. Kết luận đảo ngược hoàn toàn, nên cần tác nhân phản ứng trước khi chấm.
 
 ## Câu 7 · Cổng phát hành và sửa
@@ -90,7 +90,7 @@ Quy tắc nào chặn PercMLP và nguyên nhân gốc là gì (dẫn số)? Bạ
   2. **Sai số tích luỹ** (covariate shift) khi tự lái: R2/R3/R5. L2 vòng hở chỉ 0.630 nhưng vòng kín đâm 1.1..3.6 %, và dao động theo seed.
 - **Sửa:** (1) thêm 197180 cửa sổ từ 20000 kịch bản cắt vào mô phỏng, nhãn là IDM, để chữa nguyên nhân 1. (2) 2 vòng **DAgger** gắn nhãn IDM ở chính các trạng thái mô hình tự đi vào, để chữa nguyên nhân 2. Kết quả: va chạm trên log 1.1..3.6 % → **0.2..0.3 %**, lưới 21.3 % → **0.3 %**, phản ứng 10.5 %, qua cả 7 quy tắc. Ở tốc độ cruise 20 m/s chưa từng thấy khi huấn luyện, PercMLP+ còn 0.1..2.7 % (PercMLP là 27.7..44.0 %, IDM 0.0 %).
 - L2 vòng hở của PercMLP+ lại **tệ hơn**: 0.630 → 0.822 m, vì nó học theo IDM chứ không theo người. Điểm vòng hở không dự đoán được an toàn.
-- **PercMLP+ không tốt hơn IDM.** Nó chỉ **không kém hơn** trong biên độ cổng cho phép: worst seed 0.35 % so với 0.10 % của IDM, lưới 0.3 % so với 0.0 %, phản ứng 10.5 % so với 10.2 %. Mọi số đều nhỉnh hơn IDM, và nó học từ chính IDM nên khó vượt thầy. Tôi **không** đề xuất thay IDM ngay: chạy shadow mode bên cạnh IDM, thử thêm kịch bản ngoài phân bố (tốc độ cao, nhiễu cảm biến, trễ), kiểm thử trên dữ liệu mới, và chỉ phát hành khi có lợi ích rõ ràng so với IDM (êm hơn, giống người hơn) mà không đánh đổi an toàn.
+- **PercMLP+ không tốt hơn IDM.** Nó chỉ **không kém hơn** trong biên độ cổng cho phép: worst seed 0.35 % so với 0.10 % của IDM, lưới 0.3 % so với 0.0 %, phản ứng 10.5 % so với 10.2 %. Mọi số đều nhỉnh hơn IDM, và nó học từ chính IDM nên khó vượt thầy. **Không** nên thay IDM ngay; đề xuất: chạy shadow mode bên cạnh IDM, thử thêm kịch bản ngoài phân bố (tốc độ cao, nhiễu cảm biến, trễ), kiểm thử trên dữ liệu mới, và chỉ phát hành khi có lợi ích rõ ràng so với IDM (êm hơn, giống người hơn) mà không đánh đổi an toàn.
 
 ## Câu 8 · Bài lab này không chứng minh được gì
 Chọn **ít nhất ba** giới hạn quan trọng nhất đối với việc quyết định phát hành và giải thích vì sao mỗi cái làm kết luận của bạn kém chắc chắn. Điều gì cần làm tiếp để thu hẹp khoảng cách đến thế giới thật?
